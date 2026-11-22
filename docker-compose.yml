@@ -1,0 +1,59 @@
+name: slotwise
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env}
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://app_user:${APP_DB_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./server/src:/app/src
+      - ./server/scripts:/app/scripts
+    # migrate + seed are idempotent, so this is safe on every start
+    command: sh -c "npm run setup && npm run dev"
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      API_PROXY_TARGET: http://server:4000
+      VITE_USE_POLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client/src:/app/src
+      - ./client/index.html:/app/index.html
+
+volumes:
+  pgdata:

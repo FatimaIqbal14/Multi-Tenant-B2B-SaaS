@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply bg-mist text-ink antialiased; }
+  body { @apply font-sans min-h-screen; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-harbor-500; }
+}
+
+@layer components {
+  .input {
+    @apply block w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink
+           placeholder:text-ink/40 transition-colors focus:border-harbor-500 focus:outline-none
+           focus:ring-2 focus:ring-harbor-500/25;
+  }
+  .input[aria-invalid='true'] { @apply border-danger focus:border-danger focus:ring-danger/20; }
+  .btn {
+    @apply inline-flex w-full items-center justify-center rounded-lg bg-harbor px-4 py-3 text-[15px]
+           font-semibold text-white transition-colors hover:bg-harbor-700 disabled:cursor-not-allowed
+           disabled:opacity-60;
+  }
+  .link { @apply font-medium text-harbor-500 underline decoration-harbor-500/30 underline-offset-4 hover:decoration-harbor-500; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .block-in { animation: block-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  @keyframes block-in { from { opacity: 0; transform: scaleY(0.4); } to { opacity: 1; transform: scaleY(1); } }
+}
